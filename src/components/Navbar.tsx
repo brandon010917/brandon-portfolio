@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X } from "lucide-react";
 import Logo from "../assets/logo.svg";
@@ -10,29 +10,60 @@ const navItems = [
   { label: "Contacto", href: "#contact" },
 ];
 
-const Navbar = () => {
+const mobileMenuVariants = {
+  hidden: {
+    opacity: 0,
+    clipPath: "inset(0 0 100% 0)",
+  },
+  visible: {
+    opacity: 1,
+    clipPath: "inset(0 0 0% 0)",
+  },
+};
+
+const Navbar = memo(() => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
+    let rafId: number;
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        setScrolled(window.scrollY > 50);
+      });
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
+
+  const toggleMobile = useCallback(() => setMobileOpen((prev) => !prev), []);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   return (
     <motion.header
       initial={{ y: -80 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 border-b border-b-transparent transition-all duration-300 ${
         scrolled ? "glass" : "bg-transparent"
       }`}
     >
       <nav className="container mx-auto flex items-center justify-between px-6 py-4">
-        {/* Logo */}
-        <a href="#home" className="">
-          <img src={Logo.src} alt="Logo" />
+        {/* Logo — explicit dimensions prevent CLS */}
+        <a href="#home">
+          <img
+            src={Logo.src}
+            alt="Logo"
+            width={32}
+            height={32}
+            decoding="async"
+            fetchPriority="high"
+          />
         </a>
 
         {/* Desktop nav */}
@@ -51,7 +82,7 @@ const Navbar = () => {
 
         {/* Mobile toggle */}
         <button
-          onClick={() => setMobileOpen(!mobileOpen)}
+          onClick={toggleMobile}
           className="md:hidden text-foreground"
           aria-label="Toggle menu"
         >
@@ -59,21 +90,24 @@ const Navbar = () => {
         </button>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — clip-path avoids layout recalculation on each frame */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            variants={mobileMenuVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="glass md:hidden overflow-hidden"
+            style={{ willChange: "clip-path, opacity" }}
           >
             <ul className="flex flex-col items-center gap-6 py-8">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={closeMobile}
                     className="font-mono text-sm uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
                   >
                     {item.label}
@@ -86,6 +120,8 @@ const Navbar = () => {
       </AnimatePresence>
     </motion.header>
   );
-};
+});
+
+Navbar.displayName = "Navbar";
 
 export default Navbar;
