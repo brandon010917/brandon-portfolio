@@ -1,12 +1,14 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar';
-import background from '../assets/background.svg';
-import Hero from '../components/Hero';
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar";
+import Hero from "../components/Hero";
+import Skills from "../components/Skills";
 ---
 
 <Layout>
-	<Navbar client:load />
+  <Navbar client:load />
 
-	<Hero client:load />
+  <Hero client:load />
+
+  <Skills client:load />
 </Layout>
